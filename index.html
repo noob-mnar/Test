@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTV Player</title>
+    <link href="asset/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="asset/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="asset/npm/hls.js@latest"></script>
+    <style>
+        .channel-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: linear-gradient(145deg, #2c3036, #23272b);
+            border: none;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        .channel-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 8px 8px 20px rgba(0,0,0,0.4);
+        }
+        .channel-card .card-body {
+            padding: 0;
+        }
+        .channel-logo {
+            width: 100%;
+            height: 180px;
+            object-fit: contain;
+            background: linear-gradient(45deg, #1a1d20, #2c3036);
+            padding: 15px;
+            margin-bottom: 0;
+        }
+        .channel-info {
+            padding: 15px;
+            background: rgba(33, 37, 41, 0.95);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .category-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(45deg, #dc3545, #ff4d5a);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn {
+            border-radius: 25px;
+            padding: 8px 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #00c6ff);
+            border: none;
+        }
+        .btn-warning {
+            background: linear-gradient(45deg, #ffc107, #ffaa00);
+            border: none;
+        }
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #00d084);
+            border: none;
+        }
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .btn i {
+            margin-left: 8px;
+            font-size: 0.9rem;
+        }
+        .video-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+        }
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            max-width: 1024px;
+            margin: 0 auto;
+        }
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .telegram-banner {
+            background: linear-gradient(45deg, #0088cc, #00406e);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .telegram-banner:hover {
+            transform: translateY(-2px);
+        }
+        .telegram-banner i {
+            color: white;
+            font-size: 24px;
+        }
+        .telegram-banner span {
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <div class="container py-4">
+        <!-- Add Visitor Counter -->
+        <div class="text-center mb-3">
+            <h6>Total Visitors: 120</h6>
+        </div>
+        
+        <!-- Add Telegram Banner -->
+        <a href="tg://resolve?domain=MundaZaiNibot" class="telegram-banner">
+            <i class="fab fa-telegram"></i>
+            <span>MundaZaiNi!</span>
+        </a>
+
+        <h1 class="text-center mb-2"> Proximity Play</h1>
+        <p class="update-time"></p>
+        <div class="row mb-4">
+            <div class="col-md-6 mx-auto">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search channels...">
+            </div>
+        </div>
+        <div class="row" id="channelGrid">
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://image.tsports.com/images/mobile_logo/1735207297-BPL-Live-Thum.jpg" alt="LIVE | BPL 2025" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">LIVE | BPL 2025</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/live-cdn.tsports.com\/live-02\/index.m3u8","cookie":"Host=live-cdn.tsports.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9saXZlLWNkbi50c3BvcnRzLmNvbS8:Expires=1738658275:KeyName=tsports-ed25519-01:Signature=kRqPPiYE9RVV_cbBnCHztv1uTZO_a0S55mJO0pGFFs53pHyMSotJ77OL60uFp3wIDtuChfHq0v8BBIriBJ6sBw"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://image.tsports.com/images/mobile_logo/1719127161-LIVE.jpg" alt="T Sports Live 01" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">T Sports Live 01</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/live-cdn.tsports.com\/live-01\/index.m3u8","cookie":"Host=live-cdn.tsports.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9saXZlLWNkbi50c3BvcnRzLmNvbS8:Expires=1738658275:KeyName=tsports-ed25519-01:Signature=kRqPPiYE9RVV_cbBnCHztv1uTZO_a0S55mJO0pGFFs53pHyMSotJ77OL60uFp3wIDtuChfHq0v8BBIriBJ6sBw"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://images.toffeelive.com/images/program/301935/logo/240x240/mobile_logo_428673001738570163.png" alt="Champions Trophy 2025" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Champions Trophy 2025</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/mprod-cdn.toffeelive.com\/live\/match-1\/index.m3u8","cookie":"Host=mprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9tcHJvZC1jZG4udG9mZmVlbGl2ZS5jb20v:Expires=1738636438:KeyName=prod_live_events:Signature=9WVvarYxcPW9RWhfXG6CavcBVXM_Y2HjUdWhOCihwCvE9FV669pM5Uk0kHTo9MTXXsfKSSMZ3xfdzm9Nfu_mAA"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://images.toffeelive.com/images/program/19779/logo/240x240/mobile_logo_975410001725875598.png" alt="TOFFEE Sports VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">TOFFEE Sports VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sports_highlights\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://images.toffeelive.com/images/program/2708/logo/240x240/mobile_logo_724353001725875591.png" alt="TOFFEE Movies VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">TOFFEE Movies VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/toffee_movie\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://images.toffeelive.com/images/program/44878/logo/240x240/mobile_logo_764950001725875605.png" alt="TOFFEE Dramas VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">TOFFEE Dramas VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/toffee_drama\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">International News</span>
+                    <img src="https://images.toffeelive.com/images/program/333/logo/240x240/mobile_logo_146607001735536058.png" alt="CNN VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">CNN VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/cnn\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Sports</span>
+                    <img src="https://images.toffeelive.com/images/program/4388/logo/240x240/mobile_logo_422191001674119624.png" alt="Euro Sport HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Euro Sport HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/euro_sports_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Sports</span>
+                    <img src="https://images.toffeelive.com/images/program/603/logo/240x240/mobile_logo_237244001666780563.png" alt="SONY SPORTS TEN 1 HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY SPORTS TEN 1 HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sony_sports_1_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Sports</span>
+                    <img src="https://images.toffeelive.com/images/program/604/logo/240x240/mobile_logo_093449001666780976.png" alt="SONY SPORTS TEN 2 HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY SPORTS TEN 2 HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sony_sports_2_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Sports</span>
+                    <img src="https://images.toffeelive.com/images/program/606/logo/240x240/mobile_logo_689539001672145843.png" alt="SONY SPORTS TEN 5 HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY SPORTS TEN 5 HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sony_sports_5_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Sports</span>
+                    <img src="https://images.toffeelive.com/images/program/301891/logo/240x240/mobile_logo_578686001735197654.png" alt="SONY TEN Cricket" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY TEN Cricket</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/ten_cricket\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Kids</span>
+                    <img src="https://images.toffeelive.com/images/program/26942/logo/240x240/mobile_logo_443429001678950505.png" alt="Cartoon Network HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Cartoon Network HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/cartoon_network_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Kids</span>
+                    <img src="https://images.toffeelive.com/images/program/27232/logo/240x240/mobile_logo_320294001679201065.png" alt="Cartoon Network" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Cartoon Network</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/cartoon_network_sd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Kids</span>
+                    <img src="https://images.toffeelive.com/images/program/27159/logo/240x240/mobile_logo_740957001679201029.png" alt="Pogo" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Pogo</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/pogo_sd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Kids</span>
+                    <img src="https://images.toffeelive.com/images/program/611/logo/240x240/mobile_logo_430542001673177743.png" alt="Discovery Kids" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Discovery Kids</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/discovery_kids\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Kids</span>
+                    <img src="https://images.toffeelive.com/images/program/612/logo/240x240/mobile_logo_091186001666784752.png" alt="SONY YAY VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY YAY VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonyyay\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/340/logo/240x240/mobile_logo_094417001655891123.png" alt="Zee Bangla VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Zee Bangla VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/zee_bangla\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/303937/logo/240x240/mobile_logo_880134001738072763.png" alt="Hum TV" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Hum TV</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/hum_tv\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/303947/logo/240x240/mobile_logo_203789001738235600.png" alt="Hum Masala" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Hum Masala</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/hum_masala\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/303948/logo/240x240/mobile_logo_350939001738236112.png" alt="Hum Sitarey" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Hum Sitarey</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/hum_sitaray\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/343/logo/240x240/mobile_logo_496322001666780228.png" alt="Sony Aat VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Sony Aat VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonyaath\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/602/logo/240x240/mobile_logo_495351001666780441.png" alt="SONY ENTERTAINMENT TELEVISION HD VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY ENTERTAINMENT TELEVISION HD VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonyentertainmnt_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/57/logo/240x240/mobile_logo_149299001666780350.png" alt="SONY ENTERTAINMENT TELEVISION" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY ENTERTAINMENT TELEVISION</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sony_entertainment\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/367/logo/115x115/mobile_logo_886909001563629905.png" alt="B4U Music VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">B4U Music VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/b4u_music\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Entertainment Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/2420/logo/240x240/mobile_logo_688156001666785674.png" alt="SONY SAB HD VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY SAB HD VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonysab_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Movie Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/641/logo/240x240/mobile_logo_440775001666782769.png" alt="SONY MAX HD VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY MAX HD VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sony_max_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Movie Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/352/logo/240x240/mobile_logo_612341001666782969.png" alt="SONY MAX VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY MAX VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sony_max\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Movie Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/2419/logo/240x240/mobile_logo_287412001666784602.png" alt="SONY PIX HD VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY PIX HD VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonypix_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Movie Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/366/logo/240x240/mobile_logo_702115001663003759.png" alt="B4U Movies VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">B4U Movies VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/b4u_movies\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Movie Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/353/logo/240x240/mobile_logo_044841001666779831.png" alt="SONY MAX 2 VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY MAX 2 VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonymax_2\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Movie Channels</span>
+                    <img src="https://images.toffeelive.com/images/program/403/logo/240x240/mobile_logo_368845001655891378.png" alt="Zee Bangla Cinema VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Zee Bangla Cinema VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/zee_bangla_cinema\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/608/logo/240x240/mobile_logo_648826001673178929.png" alt="TLC HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">TLC HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/tlc_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/358/logo/240x240/mobile_logo_048875001673178985.png" alt="TLC" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">TLC</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/tlc_sd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/359/logo/240x240/mobile_logo_835681001673175607.png" alt="Animal Planet" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Animal Planet</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/animal_planet_sd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/18096/logo/240x240/mobile_logo_032001001673194753.png" alt="Animal Planet HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Animal Planet HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/animal_planet_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/670/logo/240x240/mobile_logo_330023001731294257.png" alt="SONY BBC EARTH HD VIP" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SONY BBC EARTH HD VIP</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/sonybbc_earth_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/18093/logo/240x240/mobile_logo_868363001673181438.png" alt="Discovery HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Discovery HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/discovery_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/18097/logo/240x240/mobile_logo_297723001673195119.png" alt="Discovery" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Discovery</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/discovery_sd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/378/logo/240x240/mobile_logo_604754001673177502.png" alt="Discovery Science" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Discovery Science</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/discovery_science\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/379/logo/240x240/mobile_logo_775127001673177876.png" alt="Discovery Turbo" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Discovery Turbo</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/discovery_turbo\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">Infotainment</span>
+                    <img src="https://images.toffeelive.com/images/program/18094/logo/240x240/mobile_logo_154805001673178308.png" alt="Investigation Discovery HD" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">Investigation Discovery HD</h5>
+                                                <button class="btn btn-warning" 
+                                onclick='openCookiePlayer({"url":"https:\/\/bldcmprod-cdn.toffeelive.com\/cdn\/live\/discovary_investigation_hd\/playlist.m3u8","cookie":"Host=bldcmprod-cdn.toffeelive.com; Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29tLw:Expires=1738758910:KeyName=prod_linear:Signature=juymplA0X-lgCKM3Rjj5FBh8CkQSs1uAIV6X1Dx1tZl7yZ1_GQLM6fstX3wctz-baEvU9m3MXwX2e9v5McOUAg"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Maxplay Channels -->
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://image.tsports.com/images/mobile_logo/1719127161-LIVE.jpg" alt="T Sports (Maxplay)" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">T Sports (Maxplay)</h5>
+                        <button class="btn btn-success mt-2" 
+                                onclick='openRefererPlayer({"url":"https:\/\/cdn.sturls.com\/TSports\/index.m3u8?token=561d7b10541e6cb1f54bd346e10bbd1ae13cc101-24dc602c9f9cedd60c9aa9693cc9e2e3-1738605311-1738594511&amp;remote=no_check_ip","referer":"https:\/\/secureplayer.sportstvn.com\/"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://bunny-wp-pullzone-riionukvtf.b-cdn.net/wp-content/uploads/2025/01/supersportscricket-300x188.png" alt="SuperSports Cricket" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">SuperSports Cricket</h5>
+                        <button class="btn btn-success mt-2" 
+                                onclick='openRefererPlayer({"url":"https:\/\/cdn.sturls.com\/SuperSportsCricket\/index.m3u8?token=47b0dcfb77683cdbc0c61f616a0744238621e4f7-0dced4add4c885c6b0fb86cbac6ae394-1738605311-1738594511&amp;remote=no_check_ip","referer":"https:\/\/secureplayer.sportstvn.com\/"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                        <div class="col-md-4 mb-4 channel-item">
+                <div class="card bg-secondary channel-card">
+                    <span class="category-badge">LIVE</span>
+                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6yg3Qot8SlaaAR6Lqp3sf-mPrmC0jnG2MyYRKqJcdOwvvsY2GI2xH9ziIQMEidYQHUF4CeMR4hOo338nsL4ITxRgTiLOKenk2lyje-g80AbZZZHPiKzyfb6C7cuiFhPBYd9WeIVTOVEHFqs51OrF0CzZfmVlSRtkxZPOcNYQ132oh5WBTQAK7mEnoMqSj/w1280-h720-p-k-no-nu" alt="PTV Sports" class="channel-logo">
+                    <div class="channel-info">
+                        <h5 class="card-title">PTV Sports</h5>
+                        <button class="btn btn-success mt-2" 
+                                onclick='openRefererPlayer({"url":"https:\/\/cdn.sturls.com\/PTVSports\/index.m3u8?token=6f84b0a5f4a45b97bf3f67104d7519e3b929878a-7735f38b22fa763378931359b905718f-1738605311-1738594511&amp;remote=no_check_ip","referer":"https:\/\/secureplayer.sportstvn.com\/"})'>
+                            Watch Now <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+                    </div>
+    </div>
+
+    <script>
+        // Add device detection function
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const channelItems = document.querySelectorAll('.channel-item');
+
+        searchInput.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            channelItems.forEach(item => {
+                const title = item.querySelector('.card-title').textContent.toLowerCase();
+                item.style.display = title.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        function openCookiePlayer(data) {
+            if (isMobileDevice()) {
+                const intentUri = `intent:${data.url}?|Cookie=${data.cookie}#Intent;package=com.genuine.leone;end`;
+                window.location.href = intentUri;
+            } else {
+                const headers = { Cookie: data.cookie };
+                const encodedHeaders = btoa(JSON.stringify(headers));
+                const finalUrl = `${data.url}?headers=${encodedHeaders}`;
+                window.open(`chrome-extension://opmeopcambhfimffbomjgemehjkbbmji/pages/player.html#${finalUrl}`, '_blank');
+            }
+        }
+
+        function openRefererPlayer(data) {
+            if (isMobileDevice()) {
+                const intentUri = `intent:${data.url}?|Referer=${data.referer}#Intent;package=com.genuine.leone;end`;
+                window.location.href = intentUri;
+            } else {
+                const headers = { Referer: data.referer };
+                const encodedHeaders = btoa(JSON.stringify(headers));
+                const finalUrl = `${data.url}&headers=${encodedHeaders}`;
+                window.open(`chrome-extension://opmeopcambhfimffbomjgemehjkbbmji/pages/player.html#${finalUrl}`, '_blank');
+            }
+        }
+    </script>
+</body>
+</html>
